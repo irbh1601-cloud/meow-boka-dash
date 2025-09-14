@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meow & Boka’s Dash 🐾</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+    background: #d0f0ff;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to top, #87ceeb, #d0f0ff);
+  }
+  .platform {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100px;
+    background: #654321;
+  }
+  .cat {
+    position: absolute;
+    bottom: 100px;
+    left: 50px;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+  }
+  .meow { background: pink; }
+  .boka { background: orange; }
+  .obstacle {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: black;
+    bottom: 100px;
+  }
+  .treat {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: yellow;
+    border-radius: 50%;
+  }
+  #score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    color: #ff1493;
+  }
+  #startScreen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 192, 203, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  #startScreen button {
+    background: #ff69b4;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    margin: 10px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="platform"></div>
+  <div id="startScreen">
+    <h1>Choose Your Cat!</h1>
+    <button onclick="startGame('meow')">Meow 🐱</button>
+    <button onclick="startGame('boka')">Boka 🐾</button>
+  </div>
+  <div id="score">Score: 0</div>
+</div>
+
+<audio id="jumpSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+<audio id="collectSound" src="https://www.soundjay.com/button/sounds/button-09.mp3"></audio>
+<audio id="gameOverSound" src="https://www.soundjay.com/button/sounds/button-4.mp3"></audio>
+
+<script>
+const game = document.getElementById('game');
+const jumpSound = document.getElementById('jumpSound');
+const collectSound = document.getElementById('collectSound');
+const gameOverSound = document.getElementById('gameOverSound');
+
+let cat, catBottom = 100, isJumping = false, gravity = 2;
+let score = 0;
+let gameWidth = window.innerWidth;
+
+function startGame(type) {
+  document.getElementById('startScreen').style.display = 'none';
+
+  cat = document.createElement('div');
+  cat.className = 'cat ' + type;
+  game.appendChild(cat);
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !isJumping) jump();
+  });
+
+  createObstacle();
+  createTreat();
+}
+
+function jump() {
+  isJumping = true;
+  jumpSound.play();
+  let jumpHeight = 0;
+  const up = setInterval(() => {
+    if (jumpHeight >= 100) {
+      clearInterval(up);
+      const down = setInterval(() => {
+        if (catBottom <= 100) {
+          clearInterval(down);
+          isJumping = false;
+        }
+        catBottom -= gravity;
+        cat.style.bottom = catBottom + 'px';
+      }, 20);
+    }
+    jumpHeight += gravity;
+    catBottom += gravity;
+    cat.style.bottom = catBottom + 'px';
+  }, 20);
+}
+
+function createObstacle() {
+  const obs = document.createElement('div');
+  obs.className = 'obstacle';
+  obs.style.left = gameWidth + 'px';
+  game.appendChild(obs);
+
+  let obsLeft = gameWidth;
+  const move = setInterval(() => {
+    obsLeft -= 4;
+    obs.style.left = obsLeft + 'px';
+
+    const catLeft = parseInt(cat.style.left);
+    const catRight = catLeft + 50;
+
+    if (obsLeft < catRight && obsLeft > catLeft && catBottom < 140) {
+      gameOverSound.play();
+      alert("Game Over! Score: " + score);
+      location.reload();
+    }
+
+    if (obsLeft < -40) {
+      game.removeChild(obs);
+      clearInterval(move);
+    }
+  }, 20);
+
+  setTimeout(createObstacle, Math.random() * 3000 + 1500);
+}
+
+function createTreat() {
+  const treat = document.createElement('div');
+  treat.className = 'treat';
+  treat.style.left = gameWidth + 'px';
+  treat.style.bottom = Math.random() * 100 + 120 + 'px';
+  game.appendChild(treat);
+
+  let treatLeft = gameWidth;
+  const move = setInterval(() => {
+    treatLeft -= 4;
+    treat.style.left = treatLeft + 'px';
+
+    const catLeft = parseInt(cat.style.left);
+    const catRight = catLeft + 50;
+    const treatY = parseInt(treat.style.bottom);
+
+    if (treatLeft < catRight && treatLeft > catLeft && catBottom + 50 >= treatY) {
+      score += 5;
+      collectSound.play();
+      document.getElementById('score').innerText = "Score: " + score;
+      game.removeChild(treat);
+      clearInterval(move);
+    }
+
+    if (treatLeft < -20) {
+      game.removeChild(treat);
+      clearInterval(move);
+    }
+  }, 20);
+
+  setTimeout(createTreat, Math.random() * 4000 + 2000);
+}
+</script>
+</body>
+</html>
